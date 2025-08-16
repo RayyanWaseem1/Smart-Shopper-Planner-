@@ -15,7 +15,6 @@ class DataProcessor:
         If the file doesn't exist, create a sample dataset.
         """
         try:
-            # Try to load the actual dataset
             self.df = pd.read_csv(self.data_file)
             print(f"Loaded dataset from {self.data_file}")
             print(f"Original dataset shape: {self.df.shape}")
@@ -25,85 +24,80 @@ class DataProcessor:
             print(f"Dataset file {self.data_file} not found. Creating sample dataset...")
             self.df = self._create_sample_dataset()
             
-        # Process and clean the data
         self.df = self._preprocess_kaggle_dataset(self.df)
         
-        # Add synthetic pricing data if not present
+        #Add synthetic pricing data if not present
         if 'price' not in self.df.columns:
             self.df = self._add_pricing_data(self.df)
             
-        # Ensure required columns exist
+        #Ensure required columns exist
         self.df = self._ensure_required_columns(self.df)
         
         print(f"Processed dataset: {len(self.df)} items with {len(self.df.columns)} features")
         return self.df
     
     def _preprocess_kaggle_dataset(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Preprocess the Kaggle nutritional values dataset.
-        Handles various possible column names and structures.
-        """
         print("Preprocessing Kaggle nutritional dataset...")
         
-        # Create a copy to avoid modifying original
+        #Create a copy to avoid modifying original
         df_processed = df.copy()
         
-        # Step 1: Standardize column names to lowercase and replace spaces/special chars
+        #Standardize column names to lowercase and replace spaces/special chars
         df_processed.columns = df_processed.columns.str.lower().str.replace(' ', '_').str.replace('(', '').str.replace(')', '').str.replace('%', 'percent').str.replace('-', '_')
         
         print(f"Standardized columns: {list(df_processed.columns)}")
         
-        # Step 2: Map common column variations to our standard names
+        #Map common column variations to our standard names
         column_mapping = {}
         
-        # Food name mapping
+        #Food name mapping
         name_candidates = ['name', 'food_name', 'description', 'food', 'item', 'product_name', 'food_item']
         for col in df_processed.columns:
             if any(candidate in col for candidate in name_candidates):
                 column_mapping[col] = 'name'
                 break
         
-        # Category mapping
+        #Category mapping
         category_candidates = ['category', 'food_group', 'group', 'type', 'class', 'food_category']
         for col in df_processed.columns:
             if any(candidate in col for candidate in category_candidates):
                 column_mapping[col] = 'category'
                 break
         
-        # Calories mapping
+        #Calories mapping
         calorie_candidates = ['calories', 'energy', 'kcal', 'cal', 'energy_kcal']
         for col in df_processed.columns:
             if any(candidate in col for candidate in calorie_candidates):
                 column_mapping[col] = 'calories'
                 break
         
-        # Protein mapping
+        #Protein mapping
         protein_candidates = ['protein', 'proteins', 'protein_g', 'protein_grams']
         for col in df_processed.columns:
             if any(candidate in col for candidate in protein_candidates):
                 column_mapping[col] = 'protein'
                 break
         
-        # Carbohydrate mapping
+        #Carbohydrate mapping
         carb_candidates = ['carbohydrate', 'carbohydrates', 'carbs', 'carb', 'carbohydrate_g', 'carbs_g', 'total_carbohydrate']
         for col in df_processed.columns:
             if any(candidate in col for candidate in carb_candidates):
                 column_mapping[col] = 'carbohydrates'
                 break
         
-        # Fat mapping
+        #Fat mapping
         fat_candidates = ['fat', 'fats', 'total_fat', 'fat_g', 'fats_g', 'lipid']
         for col in df_processed.columns:
             if any(candidate in col for candidate in fat_candidates):
                 column_mapping[col] = 'fat'
                 break
         
-        # Apply column mapping
+        #Apply column mapping
         df_processed = df_processed.rename(columns=column_mapping)
         print(f"Applied column mapping: {column_mapping}")
         print(f"Mapped columns: {list(df_processed.columns)}")
         
-        # Step 3: Handle missing values and data types
+        #Handle missing values and data types
         numeric_columns = ['calories', 'protein', 'carbohydrates', 'fat']
         for col in numeric_columns:
             if col in df_processed.columns:
@@ -114,7 +108,7 @@ class DataProcessor:
                 # Ensure non-negative values
                 df_processed[col] = df_processed[col].clip(lower=0)
         
-        # Step 4: Handle name column
+        #Handle name column
         if 'name' not in df_processed.columns:
             # If no name column found, create one from index or first text column
             text_columns = df_processed.select_dtypes(include=['object']).columns
@@ -123,34 +117,30 @@ class DataProcessor:
             else:
                 df_processed['name'] = df_processed.index.map(lambda x: f'Food_Item_{x}')
         
-        # Clean name column
+        #Clean name column
         if 'name' in df_processed.columns:
             df_processed['name'] = df_processed['name'].astype(str).str.strip()
             # Remove very short or invalid names
             df_processed = df_processed[df_processed['name'].str.len() > 2].reset_index(drop=True)
         
-        # Step 5: Handle category column
+        #Handle category column
         if 'category' not in df_processed.columns:
-            # Try to infer categories from food names if possible
             df_processed['category'] = df_processed['name'].apply(self._infer_category_from_name)
         else:
-            # Clean existing category column
             df_processed['category'] = df_processed['category'].astype(str).str.strip().str.lower()
-            # Replace empty or invalid categories
             df_processed.loc[df_processed['category'].isin(['', 'nan', 'none', 'null']), 'category'] = 'unknown'
         
-        # Step 6: Remove duplicates and invalid entries
+        #Remove duplicates and invalid entries
         df_processed = df_processed.drop_duplicates(subset=['name']).reset_index(drop=True)
         
-        # Remove items with zero calories (likely invalid data)
+        #Remove items with zero calories
         if 'calories' in df_processed.columns:
             df_processed = df_processed[df_processed['calories'] > 0].reset_index(drop=True)
         
-        # Step 7: Data validation and cleaning
-        # Remove outliers (extremely high values that seem unrealistic)
+        #Data validation and cleaning
+        # emove outliers
         for col in numeric_columns:
             if col in df_processed.columns:
-                # Remove extreme outliers (values above 99.9th percentile)
                 q99 = df_processed[col].quantile(0.999)
                 if q99 > 0:
                     df_processed = df_processed[df_processed[col] <= q99].reset_index(drop=True)
@@ -159,12 +149,9 @@ class DataProcessor:
         return df_processed
     
     def _infer_category_from_name(self, name: str) -> str:
-        """
-        Infer food category from the food name using keyword matching.
-        """
         name_lower = str(name).lower()
         
-        # Define category keywords
+        #Define category keywords
         category_keywords = {
             'meat': ['beef', 'chicken', 'pork', 'lamb', 'turkey', 'ham', 'bacon', 'sausage', 'steak', 'ground beef'],
             'seafood': ['fish', 'salmon', 'tuna', 'cod', 'shrimp', 'crab', 'lobster', 'oyster', 'clam', 'sardine'],
@@ -184,7 +171,6 @@ class DataProcessor:
         return 'unknown'
     
     def _create_sample_dataset(self) -> pd.DataFrame:
-        """Create a comprehensive sample dataset for demonstration."""
         
         # Sample food data with realistic nutritional information
         sample_foods = [
@@ -251,9 +237,8 @@ class DataProcessor:
         return pd.DataFrame(sample_foods)
     
     def _add_pricing_data(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Add realistic pricing data based on food categories and nutritional content."""
         
-        # Base prices by category (per 100g or typical serving)
+        #Base prices by category (per 100g or typical serving)
         category_price_ranges = {
             'meat': (3.0, 8.0),
             'seafood': (4.0, 12.0),
@@ -277,23 +262,23 @@ class DataProcessor:
         for _, row in df.iterrows():
             category = row.get('category', 'unknown').lower()
             
-            # Get base price range for category
+            #Get base price range for category
             if category in category_price_ranges:
                 min_price, max_price = category_price_ranges[category]
             else:
                 min_price, max_price = category_price_ranges['unknown']
             
-            # Adjust price based on protein content (higher protein = higher price)
+            #Adjust price based on protein content (higher protein = higher price)
             protein_factor = 1 + (row.get('protein', 0) / 50)  # Scale protein impact
             
-            # Adjust price based on calories (energy density affects price)
+            #Adjust price based on calories (energy density affects price)
             calorie_factor = 1 + (row.get('calories', 0) / 500)  # Scale calorie impact
             
-            # Calculate final price with some randomness
+            #Calculate final price with some randomness
             base_price = random.uniform(min_price, max_price)
             adjusted_price = base_price * protein_factor * calorie_factor * random.uniform(0.8, 1.2)
             
-            # Round to realistic price (to nearest quarter)
+            #Round to realistic price (to nearest quarter)
             final_price = round(adjusted_price * 4) / 4
             
             prices.append(max(final_price, 0.25))  # Minimum price of $0.25
@@ -302,7 +287,6 @@ class DataProcessor:
         return df
     
     def _ensure_required_columns(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Ensure all required columns exist with default values if missing."""
         required_columns = {
             'name': 'Unknown Item',
             'category': 'unknown',
@@ -323,7 +307,6 @@ class DataProcessor:
         return df
     
     def filter_by_restrictions(self, df: pd.DataFrame, restrictions: List[str]) -> pd.DataFrame:
-        """Filter dataset based on dietary restrictions."""
         if not restrictions:
             return df
         
@@ -347,7 +330,6 @@ class DataProcessor:
                 filtered_df = filtered_df[
                     ~filtered_df['category'].str.lower().isin(excluded_categories)
                 ].reset_index(drop=True)
-                # Also exclude items with animal-derived ingredients in name
                 animal_keywords = ['cheese', 'milk', 'butter', 'yogurt', 'cream', 'egg', 'honey']
                 for keyword in animal_keywords:
                     filtered_df = filtered_df[
@@ -365,7 +347,6 @@ class DataProcessor:
                 print(f"Gluten-free filter applied: {len(filtered_df)} items remaining")
                 
             elif restriction == 'low_sodium':
-                # This would require sodium data, so we'll exclude processed foods
                 processed_keywords = ['canned', 'processed', 'deli', 'bacon', 'ham', 'sausage']
                 for keyword in processed_keywords:
                     filtered_df = filtered_df[
@@ -403,9 +384,8 @@ class DataProcessor:
         return filtered_df
     
     def add_expiration_dates(self, items: List[Dict]) -> List[Dict]:
-        """Add realistic expiration dates to food items based on their category."""
         
-        # Typical shelf life by category (in days)
+        #Typical shelf life by category (in days)
         shelf_life_ranges = {
             'meat': (1, 5),
             'seafood': (1, 3),
@@ -432,22 +412,20 @@ class DataProcessor:
             item_copy = item.copy()
             category = item.get('category', 'unknown').lower()
             
-            # Get shelf life range for category
+            #Get shelf life range for category
             if category in shelf_life_ranges:
                 min_days, max_days = shelf_life_ranges[category]
             else:
                 min_days, max_days = shelf_life_ranges['unknown']
             
-            # Add some randomness to simulate different purchase dates
-            # Some items were bought recently, others might be older
             purchase_age = random.randint(0, min_days)  # How many days ago was it purchased
             remaining_shelf_life = random.randint(min_days - purchase_age, max_days - purchase_age)
             remaining_shelf_life = max(remaining_shelf_life, 0)  # Ensure non-negative
             
-            # Calculate expiration date
+            #Calculate expiration date
             expiration_date = current_date + timedelta(days=remaining_shelf_life)
             
-            # Add expiration information to item
+            #Add expiration information to item
             item_copy.update({
                 'expiration_date': expiration_date.strftime('%Y-%m-%d'),
                 'days_to_expiry': remaining_shelf_life,
@@ -460,17 +438,15 @@ class DataProcessor:
         return items_with_expiry
     
     def get_category_statistics(self, df: pd.DataFrame) -> Dict:
-        """Get statistical information about food categories in the dataset."""
         if df.empty:
             return {}
         
         stats = {}
         
-        # Overall statistics
         stats['total_items'] = len(df)
         stats['categories'] = df['category'].nunique()
         
-        # Category breakdown
+        #Category breakdown
         category_stats = {}
         for category in df['category'].unique():
             cat_data = df[df['category'] == category]
@@ -488,7 +464,7 @@ class DataProcessor:
         
         stats['by_category'] = category_stats
         
-        # Nutritional statistics
+        #Nutritional statistics
         if all(col in df.columns for col in ['calories', 'protein', 'carbohydrates', 'fat']):
             stats['nutrition_summary'] = {
                 'avg_calories': df['calories'].mean(),
@@ -499,7 +475,7 @@ class DataProcessor:
                 'total_protein': df['protein'].sum()
             }
         
-        # Price statistics
+        #Price statistics
         if 'price' in df.columns:
             stats['price_summary'] = {
                 'avg_price': df['price'].mean(),
@@ -513,17 +489,14 @@ class DataProcessor:
     
     def search_items(self, df: pd.DataFrame, query: str, 
                     search_columns: List[str] = None) -> pd.DataFrame:
-        """Search for items in the dataset based on a query string."""
         if df.empty or not query:
             return df
         
         if search_columns is None:
             search_columns = ['name', 'category']
         
-        # Make search case-insensitive
         query = query.lower()
         
-        # Create boolean mask for search results
         mask = pd.Series([False] * len(df))
         
         for col in search_columns:
@@ -537,7 +510,6 @@ class DataProcessor:
     
     def get_items_by_budget_range(self, df: pd.DataFrame, min_price: float, 
                                  max_price: float) -> pd.DataFrame:
-        """Filter items by price range."""
         if df.empty or 'price' not in df.columns:
             return df
         
@@ -550,7 +522,6 @@ class DataProcessor:
         return filtered_items
     
     def get_high_nutrition_items(self, df: pd.DataFrame, nutrition_thresholds: Dict = None) -> pd.DataFrame:
-        """Filter items that meet high nutritional standards."""
         if df.empty:
             return df
         
@@ -574,18 +545,17 @@ class DataProcessor:
     
     def balance_macronutrients(self, selected_items: List[Dict], 
                              target_ratios: Dict = None) -> Dict:
-        """Analyze macronutrient balance of selected items."""
         if not selected_items:
             return {'error': 'No items provided'}
         
         if target_ratios is None:
             target_ratios = {
-                'protein': 0.25,    # 25% of calories from protein
-                'carbohydrates': 0.50,  # 50% of calories from carbs
-                'fat': 0.25         # 25% of calories from fat
+                'protein': 0.25,    #25% of calories from protein
+                'carbohydrates': 0.50,  #50% of calories from carbs
+                'fat': 0.25         #25% of calories from fat
             }
         
-        # Calculate totals
+        #Calculate totals
         total_calories = sum(item.get('calories', 0) for item in selected_items)
         total_protein = sum(item.get('protein', 0) for item in selected_items)
         total_carbs = sum(item.get('carbohydrates', 0) for item in selected_items)
@@ -594,25 +564,25 @@ class DataProcessor:
         if total_calories == 0:
             return {'error': 'No caloric content in selected items'}
         
-        # Convert grams to calories (protein: 4 cal/g, carbs: 4 cal/g, fat: 9 cal/g)
+        #Convert grams to calories (protein: 4 cal/g, carbs: 4 cal/g, fat: 9 cal/g)
         protein_calories = total_protein * 4
         carb_calories = total_carbs * 4
         fat_calories = total_fat * 9
         
-        # Calculate actual ratios
+        #Calculate actual ratios
         actual_ratios = {
             'protein': protein_calories / total_calories,
             'carbohydrates': carb_calories / total_calories,
             'fat': fat_calories / total_calories
         }
         
-        # Calculate deviations from target
+        #Calculate deviations from target
         deviations = {
             nutrient: abs(actual_ratios[nutrient] - target_ratios[nutrient])
             for nutrient in target_ratios
         }
         
-        # Overall balance score (lower deviation = better balance)
+        #Overall balance score (lower deviation = better balance)
         balance_score = 1 - (sum(deviations.values()) / len(deviations))
         balance_score = max(balance_score, 0)  # Ensure non-negative
         
@@ -632,7 +602,6 @@ class DataProcessor:
         }
     
     def _get_balance_grade(self, balance_score: float) -> str:
-        """Convert balance score to letter grade."""
         if balance_score >= 0.9:
             return 'A+'
         elif balance_score >= 0.8:
@@ -645,14 +614,13 @@ class DataProcessor:
             return 'D'
     
     def _get_balance_recommendations(self, deviations: Dict, targets: Dict) -> List[str]:
-        """Generate recommendations to improve macronutrient balance."""
         recommendations = []
         
-        # Find the most imbalanced nutrient
+        #Find the most imbalanced nutrient
         max_deviation = max(deviations.values())
         most_imbalanced = [k for k, v in deviations.items() if v == max_deviation][0]
         
-        if max_deviation > 0.1:  # Only recommend if significant imbalance
+        if max_deviation > 0.1:  #Only recommend if significant imbalance
             if most_imbalanced == 'protein':
                 recommendations.append("Consider adding more protein-rich foods (lean meats, legumes, dairy)")
             elif most_imbalanced == 'carbohydrates':
@@ -660,7 +628,7 @@ class DataProcessor:
             elif most_imbalanced == 'fat':
                 recommendations.append("Consider adding healthy fats (nuts, avocados, olive oil)")
         
-        # Check for overall balance
+        #Check for overall balance
         if sum(deviations.values()) > 0.3:
             recommendations.append("Overall macronutrient balance could be improved")
             recommendations.append("Try to include foods from all major food groups")
@@ -668,7 +636,6 @@ class DataProcessor:
         return recommendations
     
     def export_processed_data(self, df: pd.DataFrame, filename: str = "processed_food_data.csv"):
-        """Export the processed dataset to CSV."""
         try:
             df.to_csv(filename, index=False)
             print(f"Dataset exported to {filename}")
@@ -678,20 +645,17 @@ class DataProcessor:
             return False
     
     def create_meal_combinations(self, df: pd.DataFrame, target_calories: int = 500) -> List[Dict]:
-        """Create balanced meal combinations from available items."""
         if df.empty:
             return []
         
         meal_combinations = []
         items = df.to_dict('records')
         
-        # Generate random meal combinations
-        for _ in range(10):  # Generate 10 different meal combinations
+        for _ in range(10):
             combo = []
             combo_calories = 0
             combo_cost = 0
             
-            # Randomly select items until we reach target calories
             available_items = items.copy()
             
             while combo_calories < target_calories * 0.8 and available_items:
@@ -703,7 +667,7 @@ class DataProcessor:
                     combo_calories += item.get('calories', 0)
                     combo_cost += item.get('price', 0)
             
-            if combo:  # Only add non-empty combinations
+            if combo:
                 meal_combinations.append({
                     'items': combo,
                     'total_calories': combo_calories,
@@ -713,16 +677,13 @@ class DataProcessor:
                     'cost_per_calorie': combo_cost / max(combo_calories, 1)
                 })
         
-        # Sort by cost per calorie (most efficient first)
+        #Sort by cost per calorie
         meal_combinations.sort(key=lambda x: x['cost_per_calorie'])
         
         print(f"Generated {len(meal_combinations)} meal combinations")
-        return meal_combinations[:5]  # Return top 5 combinations
+        return meal_combinations[:5]
     
     def validate_kaggle_dataset(self, df: pd.DataFrame) -> Dict:
-        """
-        Validate the loaded Kaggle dataset and provide a quality report.
-        """
         validation_report = {
             'dataset_size': len(df),
             'column_count': len(df.columns),
@@ -732,14 +693,12 @@ class DataProcessor:
             'recommendations': []
         }
         
-        # Check for required columns
         required_cols = ['name', 'category', 'calories', 'protein', 'carbohydrates', 'fat']
         missing_cols = [col for col in required_cols if col not in df.columns]
         
         if missing_cols:
             validation_report['issues'].append(f"Missing required columns: {missing_cols}")
         
-        # Data quality checks
         for col in ['calories', 'protein', 'carbohydrates', 'fat']:
             if col in df.columns:
                 col_data = df[col]
@@ -752,31 +711,26 @@ class DataProcessor:
                     'range': [col_data.min(), col_data.max()]
                 }
                 
-                # Flag potential issues
                 if col_data.isnull().sum() > len(df) * 0.1:
                     validation_report['issues'].append(f"High missing values in {col}: {col_data.isnull().sum()}")
                 
                 if (col_data < 0).sum() > 0:
                     validation_report['issues'].append(f"Negative values found in {col}")
         
-        # Check name column
         if 'name' in df.columns:
             name_data = df['name']
             duplicate_names = name_data.duplicated().sum()
             if duplicate_names > 0:
                 validation_report['issues'].append(f"Duplicate food names found: {duplicate_names}")
             
-            # Check for very short names
             short_names = (name_data.str.len() < 3).sum()
             if short_names > 0:
                 validation_report['issues'].append(f"Very short food names found: {short_names}")
         
-        # Category analysis
         if 'category' in df.columns:
             category_counts = df['category'].value_counts()
             validation_report['category_distribution'] = category_counts.to_dict()
             
-            # Check for too many categories or very small categories
             if len(category_counts) > 50:
                 validation_report['recommendations'].append("Consider consolidating categories (50+ unique categories found)")
             
@@ -784,7 +738,6 @@ class DataProcessor:
             if small_categories:
                 validation_report['recommendations'].append(f"Small categories found: {small_categories}")
         
-        # Overall data quality score
         total_issues = len(validation_report['issues'])
         if total_issues == 0:
             validation_report['quality_score'] = 'Excellent'
@@ -798,9 +751,6 @@ class DataProcessor:
         return validation_report
     
     def preview_dataset_sample(self, df: pd.DataFrame, n: int = 10) -> None:
-        """
-        Print a preview of the dataset for inspection.
-        """
         print("\n" + "="*80)
         print("DATASET PREVIEW")
         print("="*80)
@@ -811,7 +761,6 @@ class DataProcessor:
         print(f"\nFirst {n} rows:")
         print("-" * 80)
         
-        # Display sample rows with better formatting
         for i in range(min(n, len(df))):
             row = df.iloc[i]
             print(f"\n{i+1:2d}. {row.get('name', 'Unknown')}")
@@ -822,7 +771,6 @@ class DataProcessor:
         
         print("\n" + "="*80)
         
-        # Basic statistics
         if len(df) > 0:
             print("BASIC STATISTICS:")
             print("-" * 30)

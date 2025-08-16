@@ -50,7 +50,7 @@ class SmartShoppingPlanner:
         
         results = {}
         
-        # 1. GREEDY ALGORITHM: Get cost-effective items
+        # GREEDY ALGORITHM: Get cost-effective items
         print("\n📊 Phase 1: Applying Greedy Algorithm for cost optimization...")
         greedy_selection = self.greedy_optimizer.optimize_by_cost_nutrition_ratio(
             filtered_df, 
@@ -59,7 +59,7 @@ class SmartShoppingPlanner:
         )
         results['greedy_selection'] = greedy_selection
         
-        # 2. DYNAMIC PROGRAMMING: Solve the diet knapsack problem
+        # DYNAMIC PROGRAMMING: Solve the diet knapsack problem
         print("\n🎯 Phase 2: Applying Dynamic Programming for nutritional optimization...")
         dp_selection = self.dp_optimizer.solve_diet_knapsack(
             filtered_df,
@@ -68,7 +68,7 @@ class SmartShoppingPlanner:
         )
         results['dp_selection'] = dp_selection
         
-        # 3. HEAP MANAGEMENT: Prioritize items by expiration
+        # HEAP MANAGEMENT: Prioritize items by expiration
         print("\n⏰ Phase 3: Applying Heap Management for expiration optimization...")
         
         # Add expiration dates to selected items
@@ -78,7 +78,7 @@ class SmartShoppingPlanner:
         expiration_priority = self.heap_manager.prioritize_by_expiration(items_with_expiration)
         results['expiration_priority'] = expiration_priority
         
-        # 4. CREATE FINAL OPTIMIZED PLAN
+        # CREATE FINAL OPTIMIZED PLAN
         final_plan = self._create_final_plan(
             results, user_preferences, user_preferences.get('planning_days', 7)
         )
@@ -89,12 +89,12 @@ class SmartShoppingPlanner:
         """Combine and deduplicate items from different algorithms."""
         combined_dict = {}
         
-        # Add greedy items
+        #Add greedy items
         for item in greedy_items:
             item_name = item['name']
             combined_dict[item_name] = item
             
-        # Add DP items (may override greedy if better)
+        #Add DP items (may override greedy if better)
         for item in dp_items:
             item_name = item['name']
             if item_name in combined_dict:
@@ -111,18 +111,18 @@ class SmartShoppingPlanner:
     def _create_final_plan(self, algorithm_results: Dict, preferences: Dict, planning_days: int) -> Dict:
         """Create the final optimized shopping plan."""
         
-        # Get the prioritized items by expiration
+        #Get the prioritized items by expiration
         priority_items = algorithm_results['expiration_priority']
         
-        # Calculate totals
+        #Calculate totals
         total_cost = sum(item['price'] for item in priority_items)
         total_calories = sum(item.get('calories', 0) for item in priority_items)
         total_protein = sum(item.get('protein', 0) for item in priority_items)
         
-        # Create shopping schedule
+        #Create shopping schedule
         shopping_schedule = self._create_shopping_schedule(priority_items, planning_days)
         
-        # Performance metrics
+        #Performance metrics
         performance_metrics = self._calculate_performance_metrics(
             algorithm_results, preferences
         )
@@ -194,17 +194,17 @@ class SmartShoppingPlanner:
         """Generate personalized tips to reduce food waste."""
         tips = []
         
-        # Check for items expiring soon
+        #Check for items expiring soon
         urgent_items = [item for item in items if item.get('days_to_expiry', 10) <= 3]
         if urgent_items:
             tips.append(f"🚨 Priority: Use {len(urgent_items)} items within 3 days to avoid waste")
             
-        # Check for perishable items
+        #Check for perishable items
         perishable = [item for item in items if item.get('category') in ['fruits', 'vegetables', 'dairy']]
         if perishable:
             tips.append(f"🥬 Store {len(perishable)} perishable items properly (refrigerate fruits/vegetables)")
             
-        # General tips
+        #General tips
         tips.extend([
             "📅 Plan meals around expiration dates",
             "🥡 Consider freezing items you won't use immediately",
@@ -219,12 +219,12 @@ class SmartShoppingPlanner:
         print("🎉 YOUR OPTIMIZED SMART SHOPPING PLAN")
         print("="*60)
         
-        # Summary
+        #Summary
         print(f"\n💰 Budget Analysis:")
         print(f"   Total Cost: ${plan['total_cost']:.2f}")
         print(f"   Budget Used: {plan['budget_used']:.1f}%")
         
-        # Nutritional summary
+        #Nutritional summary
         nutrition = plan['nutritional_summary']
         print(f"\n🥗 Nutritional Summary:")
         print(f"   Total Calories: {nutrition['total_calories']:.0f}")
@@ -232,7 +232,7 @@ class SmartShoppingPlanner:
         print(f"   Daily Avg Calories: {nutrition['daily_average_calories']:.0f}")
         print(f"   Daily Avg Protein: {nutrition['daily_average_protein']:.1f}g")
         
-        # Shopping schedule
+        #Shopping schedule
         print(f"\n📅 Shopping Schedule:")
         for day, details in plan['shopping_schedule'].items():
             print(f"\n   {day} ({details['priority_level']} Priority) - ${details['cost']:.2f}:")
@@ -242,12 +242,12 @@ class SmartShoppingPlanner:
             if len(details['items']) > 3:
                 print(f"     ... and {len(details['items']) - 3} more items")
         
-        # Waste reduction tips
+        #Waste reduction tips
         print(f"\n♻️ Waste Reduction Tips:")
         for tip in plan['waste_reduction_tips']:
             print(f"   {tip}")
         
-        # Algorithm performance
+        #Algorithm performance
         print(f"\n⚡ Algorithm Performance:")
         perf = plan['algorithm_performance']
         print(f"   Greedy: {perf['greedy_algorithm']['items_selected']} items selected")
@@ -259,10 +259,10 @@ def main():
     print("🛒 Welcome to Smart Shopping Planner!")
     print("=" * 50)
     
-    # Initialize the planner
+    #Initialize the planner
     planner = SmartShoppingPlanner()
     
-    # Example user preferences (you can modify these)
+    #Example user preferences
     user_preferences = {
         'budget': 150.0,
         'nutritional_goals': {
@@ -276,17 +276,17 @@ def main():
         'planning_days': 7
     }
     
-    # Create the shopping plan
+    #Create the shopping plan
     plan = planner.plan_shopping(user_preferences)
     
-    # Display the results
+    #Display the results
     planner.display_plan(plan)
     
-    # Generate visualizations
+    #Generate visualizations
     print("\n📊 Generating visualizations...")
     planner.visualizer.create_all_visualizations(plan, user_preferences)
     
-    # Save the plan to JSON
+    #Save the plan to JSON
     with open('output/shopping_plan.json', 'w') as f:
         json.dump(plan, f, indent=2, default=str)
     print("\n💾 Plan saved to 'output/shopping_plan.json'")

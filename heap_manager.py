@@ -12,37 +12,22 @@ class ExpirationHeapManager:
         self.consumption_schedule = {}
     
     def prioritize_by_expiration(self, items: List[Dict]) -> List[Dict]:
-        """
-        Use min-heap to prioritize items by expiration date.
-        Items expiring sooner get higher priority.
-        
-        Args:
-            items: List of food items with expiration information
-            
-        Returns:
-            List of items sorted by expiration priority
-        """
         if not items:
             return []
         
         print(f"Prioritizing {len(items)} items by expiration date using heap")
         
-        # Clear previous heap
         self.expiration_heap = []
         
-        # Add items to heap with expiration as priority (smaller = higher priority)
         for i, item in enumerate(items):
-            days_to_expiry = item.get('days_to_expiry', 30)  # Default to 30 days if not set
+            days_to_expiry = item.get('days_to_expiry', 30) 
             priority_score = self._calculate_priority_score(item)
             
-            # Heap entry: (priority, item_index, item)
-            # Lower priority value = higher priority in min-heap
             heap_entry = (days_to_expiry, priority_score, i, item)
             heapq.heappush(self.expiration_heap, heap_entry)
         
-        # Extract items in priority order
         prioritized_items = []
-        temp_heap = self.expiration_heap.copy()  # Preserve original heap
+        temp_heap = self.expiration_heap.copy()
         
         while temp_heap:
             days_to_expiry, priority_score, item_index, item = heapq.heappop(temp_heap)
@@ -72,51 +57,38 @@ class ExpirationHeapManager:
     
     def create_consumption_schedule(self, prioritized_items: List[Dict], 
                                   planning_days: int = 7) -> Dict:
-        """
-        Create a day-by-day consumption schedule to minimize waste.
-        Uses heap to optimally distribute items across days.
-        
-        Args:
-            prioritized_items: Items sorted by expiration priority
-            planning_days: Number of days to plan consumption
-            
-        Returns:
-            Dictionary with daily consumption recommendations
-        """
         if not prioritized_items:
             return {}
         
         print(f"Creating {planning_days}-day consumption schedule")
         
-        # Create heaps for each day (to balance daily nutrition)
+        #Create heaps for each day (to balance daily nutrition)
         daily_heaps = [[] for _ in range(planning_days)]
         schedule = {}
         
-        # Distribute items across days based on expiration priority
+        #Distribute items across days based on expiration priority
         for item in prioritized_items:
             days_to_expiry = item['days_to_expiry']
             
-            # Determine optimal day for consumption
+            #Determine optimal day for consumption
             if days_to_expiry <= 1:
-                target_day = 0  # Must consume today
+                target_day = 0 
             elif days_to_expiry <= planning_days:
                 target_day = min(days_to_expiry - 1, planning_days - 1)
             else:
-                # Distribute non-urgent items evenly
+                #Distribute non-urgent items evenly
                 target_day = len([i for i in prioritized_items if i['days_to_expiry'] > planning_days]) % planning_days
             
-            # Add to target day's heap with nutritional value as priority
+            #Add to target day's heap with nutritional value as priority
             nutritional_value = item.get('calories', 0) + (item.get('protein', 0) * 4)
             heapq.heappush(daily_heaps[target_day], (-nutritional_value, item))  # Negative for max-heap behavior
         
-        # Create schedule from heaps
         for day in range(planning_days):
             day_items = []
             total_calories = 0
             total_cost = 0
             urgency_count = 0
             
-            # Extract items from day's heap
             while daily_heaps[day]:
                 neg_nutrition_value, item = heapq.heappop(daily_heaps[day])
                 day_items.append(item)
@@ -126,7 +98,6 @@ class ExpirationHeapManager:
                 if item['days_to_expiry'] <= 3:
                     urgency_count += 1
             
-            # Create day entry
             day_key = f'Day {day + 1}'
             schedule[day_key] = {
                 'date': (datetime.now() + timedelta(days=day)).strftime('%Y-%m-%d'),
@@ -143,10 +114,6 @@ class ExpirationHeapManager:
         return schedule
     
     def track_perishable_items(self, items: List[Dict]) -> Dict:
-        """
-        Use heap to track and categorize perishable items.
-        Creates separate heaps for different perishability categories.
-        """
         print("Tracking perishable items with category-based heaps")
         
         # Category-based heaps
@@ -157,12 +124,12 @@ class ExpirationHeapManager:
             'frozen': []  # Special category for frozen items
         }
         
-        # Categorize and add to appropriate heaps
+        #Categorize and add to appropriate heaps
         for item in items:
             days_to_expiry = item.get('days_to_expiry', 30)
             category = item.get('category', 'unknown').lower()
             
-            # Determine perishability category
+            #Determine perishability category
             if days_to_expiry <= 3 or category in ['dairy', 'meat', 'seafood', 'fresh_produce']:
                 heap_category = 'highly_perishable'
             elif days_to_expiry <= 7 or category in ['bread', 'fruits', 'vegetables']:
@@ -172,15 +139,15 @@ class ExpirationHeapManager:
             else:
                 heap_category = 'stable'
             
-            # Add to appropriate heap (priority by expiration date)
+            #Add to appropriate heap (priority by expiration date)
             priority = days_to_expiry
             heapq.heappush(category_heaps[heap_category], (priority, item))
         
-        # Generate tracking summary
+        #Generate tracking summary
         tracking_summary = {}
         for category, heap in category_heaps.items():
             if heap:
-                # Get items without modifying heap
+                #Get items without modifying heap
                 items_in_category = [item for _, item in sorted(heap)]
                 
                 tracking_summary[category] = {
@@ -194,10 +161,6 @@ class ExpirationHeapManager:
         return tracking_summary
     
     def optimize_storage_priority(self, items: List[Dict]) -> List[Dict]:
-        """
-        Use heap to determine optimal storage priority.
-        Items requiring immediate attention get highest priority.
-        """
         if not items:
             return []
         
@@ -205,14 +168,14 @@ class ExpirationHeapManager:
         
         storage_heap = []
         
-        # Calculate storage priority for each item
+        #Calculate storage priority for each item
         for item in items:
             storage_priority = self._calculate_storage_priority(item)
             
-            # Add to heap (lower priority value = higher priority)
+            #Add to heap (lower priority value = higher priority)
             heapq.heappush(storage_heap, (storage_priority, item))
         
-        # Extract items in storage priority order
+        #Extract items in storage priority order
         prioritized_storage = []
         while storage_heap:
             priority, item = heapq.heappop(storage_heap)
@@ -230,16 +193,12 @@ class ExpirationHeapManager:
     
     def manage_inventory_rotation(self, current_inventory: List[Dict], 
                                 new_items: List[Dict]) -> Dict:
-        """
-        Use heap to manage FIFO (First In, First Out) inventory rotation.
-        Ensures older items are consumed before newer ones.
-        """
         print("Managing inventory rotation with FIFO heap system")
         
-        # Combined heap for all items (current + new)
+        #Combined heap for all items (current + new)
         rotation_heap = []
         
-        # Add current inventory with timestamps
+        #Add current inventory with timestamps
         for item in current_inventory:
             # Use negative days to expiry for oldest-first priority
             days_to_expiry = item.get('days_to_expiry', 30)
@@ -287,10 +246,6 @@ class ExpirationHeapManager:
         return rotation_plan
     
     def _calculate_priority_score(self, item: Dict) -> float:
-        """
-        Calculate comprehensive priority score considering multiple factors.
-        Lower score = higher priority.
-        """
         days_to_expiry = item.get('days_to_expiry', 30)
         price = item.get('price', 0)
         nutritional_value = item.get('calories', 0) + (item.get('protein', 0) * 4)
@@ -320,7 +275,6 @@ class ExpirationHeapManager:
         return max(priority_score, 0.1)  # Ensure positive priority
     
     def _get_urgency_level(self, days_to_expiry: int) -> str:
-        """Determine urgency level based on days to expiration."""
         if days_to_expiry <= 1:
             return "CRITICAL"
         elif days_to_expiry <= 3:
@@ -333,7 +287,6 @@ class ExpirationHeapManager:
             return "MINIMAL"
     
     def _get_recommended_action(self, days_to_expiry: int) -> str:
-        """Get recommended action based on days to expiration."""
         if days_to_expiry <= 1:
             return "Use immediately or freeze"
         elif days_to_expiry <= 3:
@@ -346,7 +299,6 @@ class ExpirationHeapManager:
             return "Store properly for future use"
     
     def _generate_daily_recommendations(self, day_items: List[Dict], urgent_count: int) -> List[str]:
-        """Generate daily recommendations based on items scheduled for that day."""
         recommendations = []
         
         if urgent_count > 0:
@@ -370,7 +322,6 @@ class ExpirationHeapManager:
         return recommendations
     
     def _assess_waste_risk(self, items: List[Dict]) -> str:
-        """Assess waste risk for a category of items."""
         if not items:
             return "NO_RISK"
         
@@ -389,7 +340,6 @@ class ExpirationHeapManager:
             return "MINIMAL"
     
     def _calculate_storage_priority(self, item: Dict) -> float:
-        """Calculate storage priority score (lower = higher priority)."""
         days_to_expiry = item.get('days_to_expiry', 30)
         category = item.get('category', 'unknown').lower()
         price = item.get('price', 0)
@@ -412,7 +362,6 @@ class ExpirationHeapManager:
         return max(priority, 0.1)
     
     def _get_storage_recommendation(self, item: Dict) -> str:
-        """Get storage recommendation for an item."""
         category = item.get('category', 'unknown').lower()
         days_to_expiry = item.get('days_to_expiry', 30)
         
@@ -431,7 +380,6 @@ class ExpirationHeapManager:
             return "Store in cool, dry pantry"
     
     def _get_handling_instructions(self, item: Dict) -> List[str]:
-        """Get specific handling instructions for an item."""
         category = item.get('category', 'unknown').lower()
         instructions = []
         
@@ -469,7 +417,6 @@ class ExpirationHeapManager:
         return instructions
     
     def generate_waste_prevention_report(self, items: List[Dict]) -> Dict:
-        """Generate comprehensive waste prevention report using heap analysis."""
         if not items:
             return {'error': 'No items to analyze'}
         
@@ -548,7 +495,6 @@ class ExpirationHeapManager:
         }
     
     def _calculate_waste_prevention_score(self, critical: int, high: int, total: int) -> Dict:
-        """Calculate waste prevention score based on urgency distribution."""
         if total == 0:
             return {'score': 100, 'grade': 'A+', 'description': 'No items to manage'}
         

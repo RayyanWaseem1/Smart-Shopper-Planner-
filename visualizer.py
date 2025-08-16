@@ -15,12 +15,10 @@ class ShoppingPlannerVisualizer:
         self.ensure_output_directory()
         
     def ensure_output_directory(self):
-        """Create output directory if it doesn't exist."""
         os.makedirs(self.output_dir, exist_ok=True)
         os.makedirs("output", exist_ok=True)
     
     def create_all_visualizations(self, plan: Dict, preferences: Dict):
-        """Create all visualizations for the shopping plan."""
         print("Creating visualizations...")
         
         try:
@@ -54,7 +52,6 @@ class ShoppingPlannerVisualizer:
             print(f"Error creating visualizations: {e}")
     
     def plot_budget_utilization(self, plan: Dict, preferences: Dict):
-        """Create a pie chart showing budget utilization."""
         total_budget = preferences['budget']
         used_budget = plan['total_cost']
         remaining_budget = total_budget - used_budget
@@ -85,7 +82,6 @@ class ShoppingPlannerVisualizer:
         plt.close()
     
     def plot_nutritional_breakdown(self, plan: Dict):
-        """Create bar chart of nutritional content."""
         nutrition_data = plan['nutritional_summary']
         
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
@@ -131,7 +127,6 @@ class ShoppingPlannerVisualizer:
         plt.close()
     
     def plot_category_distribution(self, items: List[Dict]):
-        """Create a bar chart showing distribution of food categories."""
         if not items:
             return
         
@@ -179,7 +174,6 @@ class ShoppingPlannerVisualizer:
         plt.close()
     
     def plot_price_vs_nutrition(self, items: List[Dict]):
-        """Create scatter plot of price vs nutritional value."""
         if not items:
             return
         
@@ -238,7 +232,6 @@ class ShoppingPlannerVisualizer:
         plt.close()
     
     def plot_expiration_timeline(self, items: List[Dict]):
-        """Create timeline showing item expiration dates."""
         if not items:
             return
         
@@ -296,7 +289,6 @@ class ShoppingPlannerVisualizer:
         plt.close()
     
     def plot_algorithm_performance(self, performance: Dict):
-        """Create visualization of algorithm performance metrics."""
         fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 12))
         
         # Items selected by each algorithm
@@ -369,7 +361,6 @@ class ShoppingPlannerVisualizer:
         plt.close()
     
     def plot_shopping_schedule(self, schedule: Dict):
-        """Create visualization of the shopping schedule."""
         if not schedule:
             return
         
@@ -422,7 +413,6 @@ class ShoppingPlannerVisualizer:
         plt.close()
     
     def plot_macronutrient_balance(self, plan: Dict):
-        """Create pie chart showing macronutrient balance."""
         items = plan['selected_items']
         if not items:
             return
@@ -482,7 +472,6 @@ class ShoppingPlannerVisualizer:
         plt.close()
     
     def create_summary_dashboard(self, plan: Dict, preferences: Dict):
-        """Create a comprehensive dashboard with key metrics."""
         fig = plt.figure(figsize=(20, 12))
         
         # Create a grid of subplots
@@ -593,7 +582,6 @@ class ShoppingPlannerVisualizer:
         plt.close()
     
     def create_cost_efficiency_analysis(self, items: List[Dict]):
-        """Create detailed cost efficiency analysis visualization."""
         if not items:
             return
         
