@@ -27,20 +27,6 @@ class SmartShoppingPlanner:
         print(f"Loaded {len(self.df)} food items from dataset")
         
     def plan_shopping(self, user_preferences: Dict) -> Dict:
-        """
-        Main method to create an optimized shopping plan based on user preferences.
-        
-        Args:
-            user_preferences: Dictionary containing:
-                - budget: float
-                - nutritional_goals: dict with min_calories, min_protein, etc.
-                - dietary_restrictions: list of restrictions
-                - shopping_list: list of preferred items
-                - planning_days: int (number of days to plan for)
-        
-        Returns:
-            Complete shopping plan with optimized selections
-        """
         print("\n🛒 Creating your Smart Shopping Plan...")
         
         # Filter data based on dietary restrictions
@@ -86,7 +72,6 @@ class SmartShoppingPlanner:
         return final_plan
     
     def _combine_selections(self, greedy_items: List, dp_items: List) -> List:
-        """Combine and deduplicate items from different algorithms."""
         combined_dict = {}
         
         #Add greedy items
@@ -109,7 +94,6 @@ class SmartShoppingPlanner:
         return list(combined_dict.values())
     
     def _create_final_plan(self, algorithm_results: Dict, preferences: Dict, planning_days: int) -> Dict:
-        """Create the final optimized shopping plan."""
         
         #Get the prioritized items by expiration
         priority_items = algorithm_results['expiration_priority']
@@ -145,7 +129,6 @@ class SmartShoppingPlanner:
         return final_plan
     
     def _create_shopping_schedule(self, items: List, days: int) -> Dict:
-        """Create a day-by-day shopping schedule."""
         schedule = {}
         items_per_day = max(1, len(items) // days)
         
@@ -165,7 +148,6 @@ class SmartShoppingPlanner:
         return schedule
     
     def _calculate_performance_metrics(self, results: Dict, preferences: Dict) -> Dict:
-        """Calculate performance metrics for each algorithm."""
         metrics = {
             'greedy_algorithm': {
                 'items_selected': len(results['greedy_selection']),
@@ -191,7 +173,6 @@ class SmartShoppingPlanner:
         return metrics
     
     def _generate_waste_reduction_tips(self, items: List) -> List[str]:
-        """Generate personalized tips to reduce food waste."""
         tips = []
         
         #Check for items expiring soon
@@ -214,7 +195,6 @@ class SmartShoppingPlanner:
         return tips
     
     def display_plan(self, plan: Dict):
-        """Display the shopping plan in a user-friendly format."""
         print("\n" + "="*60)
         print("🎉 YOUR OPTIMIZED SMART SHOPPING PLAN")
         print("="*60)
@@ -255,7 +235,6 @@ class SmartShoppingPlanner:
         print(f"   Heap Management: {perf['heap_management']['urgent_items']} urgent items prioritized")
 
 def main():
-    """Main function to run the Smart Shopping Planner."""
     print("🛒 Welcome to Smart Shopping Planner!")
     print("=" * 50)
     
