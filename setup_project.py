@@ -3,7 +3,6 @@ import requests
 import pandas as pd
 
 def create_directory_structure():
-    """Create the necessary directory structure for the project."""
     directories = [
         'algorithms',
         'data',
@@ -31,7 +30,6 @@ def create_directory_structure():
             print(f"✓ Created: {init_file}")
 
 def download_sample_dataset():
-    """Download or create a sample dataset for the project."""
     data_file = 'data/food_nutrition_dataset.csv'
     
     if os.path.exists(data_file):
@@ -128,7 +126,6 @@ def download_sample_dataset():
     print(f"✓ Created sample dataset: {data_file} ({len(sample_foods)} items)")
 
 def create_algorithm_files():
-    """Create empty algorithm files with basic structure."""
     algorithm_files = [
         ('algorithms/greedy_optimizer.py', 'Greedy Algorithm Implementation'),
         ('algorithms/dynamic_programming.py', 'Dynamic Programming Implementation'), 
@@ -155,7 +152,6 @@ def create_main_files():
             print(f"✓ Created: {file_path}")
 
 def create_readme():
-    """Create a comprehensive README file."""
     readme_content = """# Smart Shopping Planner
 
 A real-world application that utilizes data structures and algorithms to optimize grocery shopping under realistic constraints, including budget, dietary restrictions, expiration dates, and nutritional goals.
@@ -297,9 +293,6 @@ This is a educational project demonstrating DSA concepts. Feel free to:
 - Add new dietary restrictions
 - Implement additional optimization strategies
 
-## License
-
-This project is for educational purposes. Feel free to use and modify for learning and academic projects.
 """
     
     with open('README.md', 'w') as f:
@@ -307,7 +300,6 @@ This project is for educational purposes. Feel free to use and modify for learni
     print("✓ Created: README.md")
 
 def create_sample_config():
-    """Create a sample configuration file."""
     config_content = """# Smart Shopping Planner Configuration
 
 # Default user preferences (can be modified)
